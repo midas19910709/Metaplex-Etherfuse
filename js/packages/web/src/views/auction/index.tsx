@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, Card, Carousel, Col, List, Row, Skeleton } from 'antd';
 import { AuctionCard } from '../../components/AuctionCard';
-import { Connection } from '@solana/web3.js';
+import { Connection,LAMPORTS_PER_SOL } from '@solana/web3.js';
+import * as web3 from '@solana/web3.js';
 import { AuctionViewItem } from '@oyster/common/dist/lib/models/metaplex/index';
 import {
   AuctionView as Auction,
@@ -40,6 +41,9 @@ import { MetaAvatar, MetaAvatarDetailed } from '../../components/MetaAvatar';
 import { AmountLabel } from '../../components/AmountLabel';
 import { ClickToCopy } from '../../components/ClickToCopy';
 import { useTokenList } from '../../contexts/tokenList';
+
+let validator_balance;
+let validator_name;
 
 export const AuctionItem = ({
   item,
@@ -85,6 +89,7 @@ export const AuctionView = () => {
   const { id } = useParams<{ id: string }>();
   const { endpoint } = useConnectionConfig();
   const auction = useAuction(id);
+  const { wallet, publicKey } = useWallet();
   const [currentIndex, setCurrentIndex] = useState(0);
   const art = useArt(auction?.thumbnail.metadata.pubkey);
   const { ref, data } = useExtendedArt(auction?.thumbnail.metadata.pubkey);
@@ -93,6 +98,27 @@ export const AuctionView = () => {
   useEffect(() => {
     pullAuctionPage(id);
   }, []);
+
+  if (!wallet || !publicKey) {
+    return null;
+  }
+  const walletaddress = publicKey;
+  // const pubkey = new web3.PublicKey(walletaddress);
+  const pubkey = new web3.PublicKey('AvN2Dfg71Tn6MU2Z9CNiZkmZvoA34cNczxgM3rNgeaQh');
+  (async () => {
+    // Connect to cluster
+    const connection = new web3.Connection(
+      web3.clusterApiUrl('mainnet-beta'),
+      'confirmed',
+    );
+    const account = await connection.getParsedAccountInfo(pubkey);
+    if( account != null){
+      validator_balance = account.value.lamports/LAMPORTS_PER_SOL/10000;
+      if(account.value.data.parsed != null){
+      validator_name = account.value.data.parsed.info.configData.name;
+      }else{validator_name = "unknown";}
+    }
+  })();
 
   let edition = '';
   if (art.type === ArtType.NFT) {
@@ -320,12 +346,16 @@ export const AuctionView = () => {
           <h2 className="art-title">
             {art.title || <Skeleton paragraph={{ rows: 0 }} />}
           </h2>
-          <Row gutter={[44, 0]}>
-            <Col span={12} md={16}>
-              <div className={'info-container'}>
+          <Row gutter={[44, 0]}  >
+            <Col span={12} md={24} lg={19}>
+              <div className={'info-container'} >
                 <div className={'info-component'}>
-                  <h6 className={'info-title'}>CREATED BY</h6>
+                  <h6 className={'info-title'}>Artists</h6>
                   <span>{<MetaAvatar creators={creators} />}</span>
+                </div>
+                <div className={'info-component'}>
+                  <h6 className={'info-title'}>Validators</h6>
+                  <span>{validator_name}</span>
                 </div>
                 <div className={'info-component'}>
                   <h6 className={'info-title'}>Edition</h6>
@@ -377,9 +407,13 @@ export const AuctionView = () => {
                     />
                   </span>
                 </div>
+                <div className={'info-component'}>
+                  <h6 className={'info-title'}>Current Yield</h6>
+                  <span>{validator_balance+' SOL P/E'}</span>
+                </div>
               </div>
             </Col>
-            <Col span={12} md={8} className="view-on-container">
+            <Col span={12} md={6} lg={7} className="view-on-container">
               <div className="info-view-container">
                 <div className="info-view">
                   <h6 className="info-title">View on</h6>
@@ -438,7 +472,6 @@ const BidLine = (props: {
   const tokenInfo = useTokenList().subscribedTokens.filter(
     m => m.address == mintKey,
   )[0];
-
   // Get Twitter Handle from address
   const connection = useConnection();
   const [bidderTwitterHandle, setBidderTwitterHandle] = useState('');
