@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, Card, Carousel, Col, List, Row, Skeleton } from 'antd';
 import { AuctionCard } from '../../components/AuctionCard';
-import { Connection,LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import * as web3 from '@solana/web3.js';
 import { AuctionViewItem } from '@oyster/common/dist/lib/models/metaplex/index';
 import {
@@ -102,9 +102,11 @@ export const AuctionView = () => {
   if (!wallet || !publicKey) {
     return null;
   }
-  const walletaddress = publicKey;
+  // const walletaddress = publicKey;
   // const pubkey = new web3.PublicKey(walletaddress);
-  const pubkey = new web3.PublicKey('AvN2Dfg71Tn6MU2Z9CNiZkmZvoA34cNczxgM3rNgeaQh');
+  const pubkey = new web3.PublicKey(
+    'AvN2Dfg71Tn6MU2Z9CNiZkmZvoA34cNczxgM3rNgeaQh',
+  );
   (async () => {
     // Connect to cluster
     const connection = new web3.Connection(
@@ -112,11 +114,15 @@ export const AuctionView = () => {
       'confirmed',
     );
     const account = await connection.getParsedAccountInfo(pubkey);
-    if( account != null){
-      validator_balance = account.value.lamports/LAMPORTS_PER_SOL/10000;
-      if(account.value.data.parsed != null){
-      validator_name = account.value.data.parsed.info.configData.name;
-      }else{validator_name = "unknown";}
+    if (account != null) {
+      if (account.value != null) {
+        validator_balance = account.value.lamports / LAMPORTS_PER_SOL / 10000;
+        if (account.value.data['parsed'] != null) {
+          validator_name = account.value.data['parsed'].info.configData.name;
+        } else {
+          validator_name = 'unknown';
+        }
+      }
     }
   })();
 
@@ -346,9 +352,9 @@ export const AuctionView = () => {
           <h2 className="art-title">
             {art.title || <Skeleton paragraph={{ rows: 0 }} />}
           </h2>
-          <Row gutter={[44, 0]}  >
+          <Row gutter={[44, 0]}>
             <Col span={12} md={24} lg={19}>
-              <div className={'info-container'} >
+              <div className={'info-container'}>
                 <div className={'info-component'}>
                   <h6 className={'info-title'}>Artists</h6>
                   <span>{<MetaAvatar creators={creators} />}</span>
@@ -409,7 +415,7 @@ export const AuctionView = () => {
                 </div>
                 <div className={'info-component'}>
                   <h6 className={'info-title'}>Current Yield</h6>
-                  <span>{validator_balance+' SOL P/E'}</span>
+                  <span>{validator_balance + ' SOL P/E'}</span>
                 </div>
               </div>
             </Col>
